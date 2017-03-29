@@ -26,41 +26,37 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-namespace ExpenseApprovalWebService
+namespace SurveyDemoService.Models
 {
-    using System;
-    using System.IdentityModel.Tokens;
-    
     /// <summary>
-    /// Configuration for JWT tokens
+    /// Represents the body of a survey request.
     /// </summary>
-    public static class JwtConfig
+    public class SurveyRequest
     {
         /// <summary>
-        /// OpenID metadata document for tokens coming from O365.
+        /// Gets or sets the ID of the survey.
         /// </summary>
-        public const string O365OpenIdMetadataUrl = "https://substrate.office.com/sts/common/.well-known/openid-configuration";
+        public string Id { get; set; }
 
         /// <summary>
-        /// O365 token issuer. 
+        /// Gets or sets the name of the survey.
         /// </summary>
-        public const string O365TokenIssuer = "https://substrate.office.com/sts/";
+        public string Name { get; set; }
 
         /// <summary>
-        /// Token validation parameters when receives call from action execution agent.
+        /// Gets or sets the type of the question in the survey.
         /// </summary>
-        public static TokenValidationParameters GetO365TokenValidationParameters(string audience)
-        {
-            return new TokenValidationParameters()
-            {
-                ValidateIssuer = true,
-                ValidIssuers = new[] { O365TokenIssuer },
-                ValidateAudience = true,
-                ValidAudiences = new[] { audience },
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.FromMinutes(5),
-                RequireSignedTokens = true
-            };
-        }
+        public int QuestionType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the title of the question in the survey.
+        /// </summary>
+        public string QuestionTitle { get; set; }
+
+        /// <summary>
+        /// Gets or sets the choices of the question in the survey. Multiple choices
+        /// should be comma delimited.
+        /// </summary>
+        public string QuestionChoices { get; set; }
     }
 }
