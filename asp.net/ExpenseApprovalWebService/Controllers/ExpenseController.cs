@@ -29,12 +29,13 @@
 namespace ExpenseApprovalWebService.Controllers
 {
     using System;
+    using System.Diagnostics;
     using System.Net;
     using System.Net.Http;
     using System.Threading.Tasks;
     using System.Web.Http;
 
-    using Microsoft.O365.Outlook.ActionableMessages.Authentication;
+    using Microsoft.O365.ActionableMessages.Authentication;
 
     /// <summary>
     /// APIs for the expense web service.
@@ -71,18 +72,23 @@ namespace ExpenseApprovalWebService.Controllers
             // then replace [WEB SERVICE URL] with https://api.contoso.com
             string bearerToken = request.Headers.Authorization.Parameter;
             ActionableMessageTokenValidator validator = new ActionableMessageTokenValidator();
-            ActionableMessageTokenClaims claims = await validator.ValidateTokenAsync(bearerToken, "[WEB SERVICE URL]");
+            ActionableMessageTokenValidationResult result = await validator.ValidateTokenAsync(bearerToken, "[WEB SERVICE URL]");
 
-            if (claims == null)
+            if (!result.ValidationSucceeded)
             {
+                if (result.Exception != null)
+                {
+                    Trace.TraceError(result.Exception.ToString());
+                }
+
                 return request.CreateErrorResponse(HttpStatusCode.Unauthorized, "Invalid bearer token");
             }
 
             // We have a valid token. We will next verify the sender and the action performer.
             // In this example, we verify that the email is sent by Contoso LOB system
             // and the action performer has to be someone with @contoso.com email.
-            if (!string.Equals(claims.Sender, @"lob@contoso.com", StringComparison.OrdinalIgnoreCase) ||
-                !claims.ActionPerformer.ToLower().EndsWith("@contoso.com"))
+            if (!string.Equals(result.Sender, @"lob@contoso.com", StringComparison.OrdinalIgnoreCase) ||
+                !result.ActionPerformer.ToLower().EndsWith("@contoso.com"))
             {
                 return request.CreateErrorResponse(HttpStatusCode.InternalServerError, string.Empty);
             }

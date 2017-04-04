@@ -29,10 +29,11 @@
 namespace SurveyDemoService
 {
     using System;
+    using System.Diagnostics;
     using System.ServiceModel.Web;
     using System.Threading.Tasks;
 
-    using Microsoft.O365.Outlook.ActionableMessages.Authentication;
+    using Microsoft.O365.ActionableMessages.Authentication;
     using Models;
 
     /// <summary>
@@ -76,10 +77,15 @@ namespace SurveyDemoService
             // then replace [WEB SERVICE URL] with https://api.contoso.com
             string bearerToken = parts[1];
             ActionableMessageTokenValidator validator = new ActionableMessageTokenValidator();
-            ActionableMessageTokenClaims claims = await validator.ValidateTokenAsync(bearerToken, "[WEB SERVICE URL]");
+            ActionableMessageTokenValidationResult result = await validator.ValidateTokenAsync(bearerToken, "[WEB SERVICE URL]");
 
-            if (claims == null)
+            if (!result.ValidationSucceeded)
             {
+                if (result.Exception != null)
+                {
+                    Trace.TraceError(result.Exception.ToString());
+                }
+
                 response.IsError = true;
                 response.Message = "Invalid bearer token.";
                 return response;
@@ -88,8 +94,8 @@ namespace SurveyDemoService
             // We have a valid token. We will next verify the sender and the action performer.
             // In this example, we verify that the email is sent by Contoso LOB system
             // and the action performer is john@contoso.com.
-            if (!string.Equals(claims.Sender, @"survey@contoso.com", StringComparison.OrdinalIgnoreCase) ||
-                !claims.ActionPerformer.EndsWith("@contoso.com"))
+            if (!string.Equals(result.Sender, @"survey@contoso.com", StringComparison.OrdinalIgnoreCase) ||
+                !result.ActionPerformer.EndsWith("@contoso.com"))
             {
                 response.IsError = true;
                 response.Message = "Invalid sender or action performer.";
