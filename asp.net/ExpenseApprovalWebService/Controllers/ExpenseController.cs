@@ -61,17 +61,21 @@ namespace ExpenseApprovalWebService.Controllers
                 !string.Equals(request.Headers.Authorization.Scheme, BearerTokenType, StringComparison.OrdinalIgnoreCase) ||
                 string.IsNullOrEmpty(request.Headers.Authorization.Parameter))
             {
-                return request.CreateErrorResponse(HttpStatusCode.Unauthorized, "Bearer token not found.");
+                return request.CreateErrorResponse(HttpStatusCode.Unauthorized, new HttpError());
             }
 
-            // Validate that the bearer token is valid.
-            //
-            // Replace [WEB SERVICE URL] with your service domain URL.
-            // For example, if the service URL is https://api.contoso.com/finance/expense?id=1234,
-            // then replace [WEB SERVICE URL] with https://api.contoso.com
             string bearerToken = request.Headers.Authorization.Parameter;
             ActionableMessageTokenValidator validator = new ActionableMessageTokenValidator();
-            ActionableMessageTokenValidationResult result = await validator.ValidateTokenAsync(bearerToken, "[WEB SERVICE URL]");
+            
+            // ValidateTokenAsync will verify the following
+            // 1. The token is issued by Microsoft and its digital signature is valid.
+            // 2. The token has not expired.
+            // 3. The audience claim matches the service domain URL.
+            //
+            // Replace https://api.contoso.com with your service domain URL.
+            // For example, if the service URL is https://api.xyz.com/finance/expense?id=1234,
+            // then replace https://api.contoso.com with https://api.xyz.com
+            ActionableMessageTokenValidationResult result = await validator.ValidateTokenAsync(bearerToken, "https://api.contoso.com");
 
             if (!result.ValidationSucceeded)
             {
@@ -80,21 +84,29 @@ namespace ExpenseApprovalWebService.Controllers
                     Trace.TraceError(result.Exception.ToString());
                 }
 
-                return request.CreateErrorResponse(HttpStatusCode.Unauthorized, "Invalid bearer token");
+                return request.CreateErrorResponse(HttpStatusCode.Unauthorized, new HttpError());
             }
 
-            // We have a valid token. We will next verify the sender and the action performer.
-            // In this example, we verify that the email is sent by Contoso LOB system
+            // We have a valid token. We will verify the sender and the action performer. 
+            // You should replace the code below with your own validation logic.
+            // In this example, we verify that the email is sent by expense@contoso.com
             // and the action performer has to be someone with @contoso.com email.
-            if (!string.Equals(result.Sender, @"lob@contoso.com", StringComparison.OrdinalIgnoreCase) ||
+            //
+            // You should also return the CARD-ACTION-STATUS header in the response.
+            // The value of the header will be displayed to the user.
+            if (!string.Equals(result.Sender, @"expense@contoso.com", StringComparison.OrdinalIgnoreCase) ||
                 !result.ActionPerformer.ToLower().EndsWith("@contoso.com"))
             {
-                return request.CreateErrorResponse(HttpStatusCode.InternalServerError, string.Empty);
+                HttpResponseMessage errorResponse = request.CreateErrorResponse(HttpStatusCode.Forbidden, new HttpError());
+                errorResponse.Headers.Add("CARD-ACTION-STATUS", "Invalid sender or the action performer is not allowed.");
+                return errorResponse;
             }
 
-            // Process your request.
+            // Further business logic code here to process the expense report.
 
-            return Request.CreateResponse(HttpStatusCode.OK);
+            HttpResponseMessage response = Request.CreateResponse(HttpStatusCode.OK);
+            response.Headers.Add("CARD-ACTION-STATUS", "The expense was approved.");
+            return response;
         }
     }
 }
