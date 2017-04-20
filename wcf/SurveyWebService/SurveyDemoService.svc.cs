@@ -29,6 +29,7 @@ namespace SurveyDemoService
 {
     using System;
     using System.Diagnostics;
+    using System.Net;
     using System.ServiceModel.Web;
     using System.Threading.Tasks;
 
@@ -48,14 +49,16 @@ namespace SurveyDemoService
         /// <inheritdoc />
         public async Task<SurveyResponse> PostSurveyAsync(SurveyRequest request)
         {
+            WebOperationContext context = WebOperationContext.Current;
             SurveyResponse response = new Models.SurveyResponse();
 
             // Validate that we have a bearer token.
-            string authorization = WebOperationContext.Current.IncomingRequest.Headers["authorization"];
+            string authorization = context.IncomingRequest.Headers["authorization"];
             if (string.IsNullOrEmpty(authorization))
             {
                 response.IsError = true;
                 response.Message = "Bearer token not found.";
+                context.OutgoingResponse.StatusCode = HttpStatusCode.Unauthorized;
                 return response;
             }
 
@@ -66,43 +69,56 @@ namespace SurveyDemoService
             {
                 response.IsError = true;
                 response.Message = "Bearer token not found.";
+                context.OutgoingResponse.StatusCode = HttpStatusCode.Unauthorized;
                 return response;
             }
 
-            // Validate that the bearer token is valid.
-            //
-            // Replace [WEB SERVICE URL] with your service domain URL.
-            // For example, if the service URL is https://api.contoso.com/finance/expense?id=1234,
-            // then replace [WEB SERVICE URL] with https://api.contoso.com
             string bearerToken = parts[1];
             ActionableMessageTokenValidator validator = new ActionableMessageTokenValidator();
-            ActionableMessageTokenValidationResult result = await validator.ValidateTokenAsync(bearerToken, "[WEB SERVICE URL]");
+
+            // ValidateTokenAsync will verify the following
+            // 1. The token is issued by Microsoft and its digital signature is valid.
+            // 2. The token has not expired.
+            // 3. The audience claim matches the service domain URL.
+            //
+            // Replace https://api.contoso.com with your service domain URL.
+            // For example, if the service URL is https://api.xyz.com/finance/expense?id=1234,
+            // then replace https://api.contoso.com with https://api.xyz.com.
+            ActionableMessageTokenValidationResult result = await validator.ValidateTokenAsync(bearerToken, "https://api.contoso.com");
 
             if (!result.ValidationSucceeded)
             {
                 if (result.Exception != null)
                 {
                     Trace.TraceError(result.Exception.ToString());
+                    response.Message = result.Exception.Message;
                 }
 
                 response.IsError = true;
-                response.Message = "Invalid bearer token.";
+                context.OutgoingResponse.StatusCode = HttpStatusCode.Unauthorized;
                 return response;
             }
 
-            // We have a valid token. We will next verify the sender and the action performer.
-            // In this example, we verify that the email is sent by Contoso LOB system
-            // and the action performer is john@contoso.com.
+            // We have a valid token. We will verify the sender and the action performer. 
+            // You should replace the code below with your own validation logic.
+            // In this example, we verify that the email is sent by survey@contoso.com
+            // and the action performer has to be someone with @contoso.com email.
+            //
+            // You should also return the CARD-ACTION-STATUS header in the response.
+            // The value of the header will be displayed to the user.
             if (!string.Equals(result.Sender, @"survey@contoso.com", StringComparison.OrdinalIgnoreCase) ||
                 !result.ActionPerformer.EndsWith("@contoso.com"))
             {
                 response.IsError = true;
-                response.Message = "Invalid sender or action performer.";
+                response.Message = "Invalid sender or the action performer is not allowed.";
+                context.OutgoingResponse.Headers.Add("CARD-ACTION-STATUS", "Invalid sender or the action performer is not allowed.");
+                context.OutgoingResponse.StatusCode = HttpStatusCode.Forbidden;
                 return response;
             }
 
-            // Process the request.
+            // Further business logic code here to process the expense report.
 
+            context.OutgoingResponse.Headers.Add("CARD-ACTION-STATUS", "The survey was accepted.");
             return response;
         }
     }
