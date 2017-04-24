@@ -34,12 +34,12 @@ Services can send actionable messages to users to complete simple tasks against 
             // We have a valid token. We will verify the sender and the action performer. 
             // You should replace the code below with your own validation logic.
             // In this example, we verify that the email is sent by expense@contoso.com
-            // and the action performer has to be someone with @contoso.com email.
+            // and the email of the person who performed the action is john@contoso.com.
             //
             // You should also return the CARD-ACTION-STATUS header in the response.
             // The value of the header will be displayed to the user.
             if (!string.Equals(result.Sender, @"expense@contoso.com", StringComparison.OrdinalIgnoreCase) ||
-                !result.ActionPerformer.ToLower().EndsWith("@contoso.com"))
+                !string.Equals(result.ActionPerformer, @"john@contoso.com", StringComparison.OrdinalIgnoreCase))
             {
                 HttpResponseMessage errorResponse = request.CreateErrorResponse(HttpStatusCode.Forbidden, new HttpError());
                 errorResponse.Headers.Add("CARD-ACTION-STATUS", "Invalid sender or the action performer is not allowed.");
