@@ -14,6 +14,9 @@ Services can send actionable messages to users to complete simple tasks against 
                 return request.CreateErrorResponse(HttpStatusCode.Unauthorized, new HttpError());
             }
 
+            // We first validate the Microsoft issued JWT token,
+            // and verify that the target endpoint matches with the audience of the token (“aud” claim)
+            //
             // Replace https://api.contoso.com with your service domain URL.
             // For example, if the service URL is https://api.xyz.com/finance/expense?id=1234,
             // then replace https://api.contoso.com with https://api.xyz.com
@@ -31,15 +34,16 @@ Services can send actionable messages to users to complete simple tasks against 
                 return request.CreateErrorResponse(HttpStatusCode.Unauthorized, new HttpError());
             }
 
-            // We have a valid token. We will verify the sender and the action performer. 
+            // We have a valid token. We will verify the sender and the action performer claims in the JWT token. 
+            // The action performer is the user who took the action (i.e. “sub” claim of JWT token)
             // You should replace the code below with your own validation logic.
-            // In this example, we verify that the email is sent by expense@contoso.com
-            // and the action performer has to be someone with @contoso.com email.
+            // In this example, we verify that the email is sent by expense@contoso.com (expected sender)
+            // and the email of the person who performed the action is john@contoso.com email (expected user).
             //
             // You should also return the CARD-ACTION-STATUS header in the response.
             // The value of the header will be displayed to the user.
             if (!string.Equals(result.Sender, @"expense@contoso.com", StringComparison.OrdinalIgnoreCase) ||
-                !result.ActionPerformer.ToLower().EndsWith("@contoso.com"))
+                !string.Equals(result.ActionPerformer, @"john@contoso.com", StringComparison.OrdinalIgnoreCase))
             {
                 HttpResponseMessage errorResponse = request.CreateErrorResponse(HttpStatusCode.Forbidden, new HttpError());
                 errorResponse.Headers.Add("CARD-ACTION-STATUS", "Invalid sender or the action performer is not allowed.");
