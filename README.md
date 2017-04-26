@@ -23,7 +23,7 @@ Services can send actionable messages to users to complete simple tasks against 
             // specified target URL i.e. the target matches the intended audience (“aud” claim in token)
             // 
             // In your code, replace https://api.contoso.com with your service’s base URL.
-            // For example, if the service URL is https://api.xyz.com/finance/expense?id=1234,
+            // For example, if the service target URL is https://api.xyz.com/finance/expense?id=1234,
             // then replace https://api.contoso.com with https://api.xyz.com
             ActionableMessageTokenValidationResult result = await validator.ValidateTokenAsync(bearerToken, "https://api.contoso.com");
 
