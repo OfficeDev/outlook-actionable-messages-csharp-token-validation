@@ -1,0 +1,19 @@
+### YamlMime:Sample
+sample:
+- name: 'Outlook Add-in: Actionable Message Activation'
+  path: ''
+  description: A sample Outlook add-in that is activated by an actionable message. Shows how to retrieve initialization context from the action.
+  readme: ''
+  generateZip: FALSE
+  isLive: TRUE
+  technologies:
+  - Office Add-in
+  azureDeploy: ''
+  author: jamescro
+  platforms: []
+  languages:
+  - JavaScript
+  extensions:
+    products:
+    - Outlook
+    scenarios: []
